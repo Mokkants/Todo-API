@@ -46,7 +46,28 @@ app.post("/todos",function(req,res){
   //push to ToDos
   todos.push(body);
   res.json(body);
-})
+});
+
+//Removing a ToDo
+app.delete("/todos/:id",function(req,res){
+var todoID=parseInt(req.params.id,10);
+var matchedTodo=_.findWhere(todos,{id:todoID});
+
+if(matchedTodo){
+  for(let i=todoID;i<todos.length;i++){
+    todos[i].id--;
+  }
+  nextID--;
+  todos=_.without(todos,matchedTodo);
+  res.json(todos);
+}
+else{
+  res.status(404).json({"ERROR 404":"ToDo not found!"});
+}
+
+
+});
+
 
 app.listen(port,function(){
   console.log("Express listening on port "+port+"!");
