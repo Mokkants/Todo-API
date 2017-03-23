@@ -75,6 +75,7 @@ app.post("/todos",function(req,res){
 //DELETE /todos/:id
 app.delete("/todos/:id",function(req,res){
 
+//Find todo
   var todoID=parseInt(req.params.id,10);
   var matchedTodo=_.findWhere(todos,{id:todoID});
 
