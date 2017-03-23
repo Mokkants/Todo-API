@@ -1,27 +1,12 @@
 var express=require("express");
 var bodyParser = require("body-parser");
+var _=require("underscore");
 var app=express();
 var port=process.env.PORT || 3000;
 
 
+var todos=[];
 
-var todos=[
-{
-  id:1,
-  description:"Meet mom for lunch",
-  completed:false
-},
-{
-  id:2,
-  description:"Go to market",
-  completed:false
-},
-{
-  id:3,
-  description:"Make dinner",
-  completed:true
-}
-];
 app.get("/",function(req,res){
   res.send("Todo API Root");
 });
@@ -32,21 +17,33 @@ app.get("/todos",function(req,res){
 
 app.get("/todos/:id",function(req,res){
   var todoID=parseInt(req.params.id,10);
-  todos.forEach(function(todo){
-    if(todo.id===todoID){
-      res.json(todo);
-    }
-  });
-  res.status(404).send();
+  var matchedTodo=_.findWhere(todos,{id:todoID});
+  if(matchedTodo){
+    res.json(matchedTodo);
+  }
+  else{
+    res.status(404).send();
+  }
 });
 
+//New ToDo posting functionality setup
 var nextID=todos.length+1;
-//POST new ToDo
 app.use(bodyParser.json());
 
+//POST new ToDo
 app.post("/todos",function(req,res){
-  var body=req.body;
+  var body=_.pick(req.body,"description","completed");
+
+  //validate input
+  if(!_.isBoolean(body.completed) || !_.isString(body.description) || body.description.trim().length===0){
+    return res.status(400).send();
+  }
+
+  //remove unnecessary whitespace
+  body.description=body.description.trim();
+  //add ID field
   body.id=nextID++;
+  //push to ToDos
   todos.push(body);
   res.json(body);
 })
