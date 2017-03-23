@@ -1,38 +1,59 @@
-var express=require("express");
+var express = require("express");
 var bodyParser = require("body-parser");
-var _=require("underscore");
-var app=express();
-var port=process.env.PORT || 3000;
+var _ = require("underscore");
+var app = express();
+var port = process.env.PORT || 3000;
 
 
-var todos=[];
+var todos = [];
 
+//Home
 app.get("/",function(req,res){
   res.send("Todo API Root");
 });
 
+//GET /todos?query
+//List out all/ filtered ToDos
 app.get("/todos",function(req,res){
-  res.json(todos);
+  var queryParams = req.query;
+  var filteredTodos = todos;
+
+  if(queryParams.hasOwnProperty("completed")){
+    var state=(queryParams.completed==="true");
+    filteredTodos = _.where(filteredTodos, {"completed":state});
+  }
+
+  if(queryParams.hasOwnProperty("q") && queryParams.q.length>0){
+    filteredTodos = _.filter(filteredTodos, function(todo){
+      return (todo.description.toLowerCase().indexOf(queryParams.q) > -1)
+    });
+  }
+
+  res.json(filteredTodos);
 });
 
+//GET /todos/:id
+//Find a single ToDo
 app.get("/todos/:id",function(req,res){
-  var todoID=parseInt(req.params.id,10);
-  var matchedTodo=_.findWhere(todos,{id:todoID});
+
+  var todoID = parseInt(req.params.id,10);
+  var matchedTodo = _.findWhere(todos,{id:todoID});
+
   if(matchedTodo){
     res.json(matchedTodo);
-  }
-  else{
+  }else{
     res.status(404).send();
   }
+
 });
 
-//New ToDo posting functionality setup
-var nextID=todos.length+1;
+//New ToDo post
+var nextID = todos.length+1;
 app.use(bodyParser.json());
 
-//POST new ToDo
+//POST /todos
 app.post("/todos",function(req,res){
-  var body=_.pick(req.body,"description","completed");
+  var body = _.pick(req.body,"description","completed");
 
   //validate input
   if(!_.isBoolean(body.completed) || !_.isString(body.description) || body.description.trim().length===0){
@@ -40,35 +61,42 @@ app.post("/todos",function(req,res){
   }
 
   //remove unnecessary whitespace
-  body.description=body.description.trim();
+  body.description = body.description.trim();
+
   //add ID field
-  body.id=nextID++;
+  body.id = nextID++;
+
   //push to ToDos
   todos.push(body);
   res.json(body);
 });
 
 //Removing a ToDo
+//DELETE /todos/:id
 app.delete("/todos/:id",function(req,res){
-var todoID=parseInt(req.params.id,10);
-var matchedTodo=_.findWhere(todos,{id:todoID});
 
-if(matchedTodo){
-  for(let i=todoID;i<todos.length;i++){
-    todos[i].id--;
+  var todoID=parseInt(req.params.id,10);
+  var matchedTodo=_.findWhere(todos,{id:todoID});
+
+  if(matchedTodo){
+
+    //Update the ID numbers
+    nextID--;
+    for(let i=todoID;i<todos.length;i++){
+      todos[i].id--;
+    }
+
+    //remove todo
+    todos=_.without(todos,matchedTodo);
+    res.json(todos);
   }
-  nextID--;
-  todos=_.without(todos,matchedTodo);
-  res.json(todos);
-}
-else{
-  res.status(404).json({"ERROR 404":"ToDo not found!"});
-}
-
-
+  else{
+    res.status(404).json({"ERROR 404":"ToDo not found!"});
+  }
 });
 
 //Updating a ToDo
+//PUT /todos/:id
 app.put("/todos/:id",function(req,res){
   var body=_.pick(req.body,"description","completed");
   var validAttributes={};
@@ -79,20 +107,21 @@ app.put("/todos/:id",function(req,res){
     return res.status(404).send();
   }
 
+  //Validating
   if(body.hasOwnProperty("completed") && _.isBoolean(body.completed)){
     validAttributes.completed=body.completed;
   }else if(body.hasOwnProperty("completed")){
     return res.status(400).send();
   }
+  if(body.hasOwnProperty("description") && _.isString(body.description) && body.description.trim().length>0){
+    validAttributes.description=body.description;
+  }else if(body.hasOwnProperty("description")){
+    return res.status(400).send();
+  }
 
-if(body.hasOwnProperty("description") && _.isString(body.description) && body.description.trim().length>0){
-  validAttributes.description=body.description;
-}else if(body.hasOwnProperty("description")){
-  return res.status(400).send();
-}
-
-_.extend(matchedTodo, validAttributes);
-res.json(matchedTodo);
+  //Updating ToDo details
+  _.extend(matchedTodo, validAttributes);
+  res.json(matchedTodo);
 });
 
 
