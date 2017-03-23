@@ -1,6 +1,10 @@
 var express=require("express");
+var bodyParser = require("body-parser");
 var app=express();
 var port=process.env.PORT || 3000;
+
+
+
 var todos=[
 {
   id:1,
@@ -35,6 +39,17 @@ app.get("/todos/:id",function(req,res){
   });
   res.status(404).send();
 });
+
+var nextID=todos.length+1;
+//POST new ToDo
+app.use(bodyParser.json());
+
+app.post("/todos",function(req,res){
+  var body=req.body;
+  body.id=nextID++;
+  todos.push(body);
+  res.json(body);
+})
 
 app.listen(port,function(){
   console.log("Express listening on port "+port+"!");
