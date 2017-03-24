@@ -76,26 +76,24 @@ app.delete("/todos/:id",function(req,res){
 
 //Find todo
   var todoID=parseInt(req.params.id,10);
-  db.todo.findById(todoId).then();
-
-
-  var matchedTodo=_.findWhere(todos,{id:todoID});
-
-  if(matchedTodo){
-
-    //Update the ID numbers
-    nextID--;
-    for(let i=todoID;i<todos.length;i++){
-      todos[i].id--;
+  db.todo.destroy({
+    where:{
+      id: todoID
     }
+  }).then(function(rowsDeleted){
+    if(rowsDeleted===0){
+      res.status(404).json({
+        error: "No ToDo with id"
+      });
+    } else {
+      res.status(204).send();
+    }
+  },function(){
+    res.status(500).send();
+  }).catch(function(e){
+    res.send(e);
+  });
 
-    //remove todo
-    todos=_.without(todos,matchedTodo);
-    res.json(todos);
-  }
-  else{
-    res.status(404).json({"ERROR 404":"ToDo not found!"});
-  }
 });
 
 //Updating a ToDo
