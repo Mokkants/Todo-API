@@ -15,21 +15,25 @@ app.get("/",function(req,res){
 //GET /todos?query
 //List out all/ filtered ToDos
 app.get("/todos",function(req,res){
-  var queryParams = req.query;
-  var filteredTodos = todos;
+  var query = req.query;
+  var where={};
 
-  if(queryParams.hasOwnProperty("completed")){
-    var state=(queryParams.completed==="true");
-    filteredTodos = _.where(filteredTodos, {"completed":state});
+  if(query.hasOwnProperty("completed")){
+    var state=(query.completed==="true");
+    where.completed=state;
+  }
+  if(query.q && query.q.length>0){
+    where.description={$like: "%"+query.q+"%"}
   }
 
-  if(queryParams.hasOwnProperty("q") && queryParams.q.length>0){
-    filteredTodos = _.filter(filteredTodos, function(todo){
-      return (todo.description.toLowerCase().indexOf(queryParams.q) > -1)
-    });
-  }
+  db.todo.findAll({
+    where:where
+  }).then(function(todos){
+    res.json(todos);
+  }).catch(function(e){
+    res.status(500).send();
+  });
 
-  res.json(filteredTodos);
 });
 
 //GET /todos/:id
@@ -48,14 +52,6 @@ app.get("/todos/:id",function(req,res){
     res.status(500).send();
   });
 
-  // var matchedTodo = _.findWhere(todos,{id:todoID});
-  //
-  // if(matchedTodo){
-  //   res.json(matchedTodo);
-  // }else{
-  //   res.status(404).send();
-  // }
-
 });
 
 //New ToDo post
@@ -66,26 +62,12 @@ app.use(bodyParser.json());
 app.post("/todos",function(req,res){
   var body = _.pick(req.body,"description","completed");
 
-db.todo.create(body).then(function(todo){
-  res.json(todo.toJSON());
-}).catch(function(e){
-  res.status(400).json(e);
-});
+  db.todo.create(body).then(function(todo){
+    res.json(todo.toJSON());
+  }).catch(function(e){
+    res.status(500).send();
+  });
 
-  // //validate input
-  // if(!_.isBoolean(body.completed) || !_.isString(body.description) || body.description.trim().length===0){
-  //   return res.status(400).send();
-  // }
-  //
-  // //remove unnecessary whitespace
-  // body.description = body.description.trim();
-  //
-  // //add ID field
-  // body.id = nextID++;
-  //
-  // //push to ToDos
-  // todos.push(body);
-  // res.json(body);
 });
 
 //Removing a ToDo
@@ -94,6 +76,9 @@ app.delete("/todos/:id",function(req,res){
 
 //Find todo
   var todoID=parseInt(req.params.id,10);
+  db.todo.findById(todoId).then();
+
+
   var matchedTodo=_.findWhere(todos,{id:todoID});
 
   if(matchedTodo){
