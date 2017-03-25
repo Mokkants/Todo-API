@@ -19,7 +19,10 @@ app.get("/",function(req,res){
 //List out all/ filtered ToDos
 app.get("/todos",middleware.requireAuthentication,function(req,res){
   var query = req.query;
-  var where={};
+  var userID=req.user.get("id");
+  var where={
+    userId:userID
+  };
 
   if(query.hasOwnProperty("completed")){
     var state=(query.completed==="true");
@@ -42,10 +45,15 @@ app.get("/todos",middleware.requireAuthentication,function(req,res){
 //GET /todos/:id
 //Find a single ToDo
 app.get("/todos/:id",middleware.requireAuthentication,function(req,res){
-
+  var userID=req.user.get("id");
   var todoID = parseInt(req.params.id,10);
 
-  db.todo.findById(todoID).then(function(todo){
+  db.todo.findOne({
+    where:{
+    id:todoID,
+    userId:userID
+    }
+  }).then(function(todo){
     if(!!todo){
       res.json(todo.toJSON());
     }else {
@@ -81,11 +89,13 @@ app.post("/todos",middleware.requireAuthentication,function(req,res){
 //DELETE /todos/:id
 app.delete("/todos/:id",middleware.requireAuthentication,function(req,res){
 
-//Find todo
+  var userID=req.user.get("id");
   var todoID=parseInt(req.params.id,10);
+
   db.todo.destroy({
     where:{
-      id: todoID
+      id: todoID,
+      userId:userID
     }
   }).then(function(rowsDeleted){
     if(rowsDeleted===0){
@@ -106,6 +116,7 @@ app.delete("/todos/:id",middleware.requireAuthentication,function(req,res){
 //Updating a ToDo
 //PUT /todos/:id
 app.put("/todos/:id",middleware.requireAuthentication,function(req,res){
+  var userID=req.user.get("id");
   var todoID=parseInt(req.params.id,10);
   var body=_.pick(req.body,"description","completed");
   var attributes={};
@@ -117,7 +128,12 @@ app.put("/todos/:id",middleware.requireAuthentication,function(req,res){
     attributes.description=body.description;
   }
   //Updating ToDo details
-  db.todo.findById(todoID).then(function(todo){
+  db.todo.findOne({
+    where:{
+    id:todoID,
+    userId:userID
+    }
+}).then(function(todo){
 
     if(todo){
       todo.update(attributes).then(function(todo){
